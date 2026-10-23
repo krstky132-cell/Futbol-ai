@@ -49,6 +49,7 @@ footer{color:var(--muted);font-size:11px;line-height:1.5;text-align:center;paddi
 
   <nav class="wide">
     <button class="tab active" data-tab="add">Maç ekle</button>
+    <button class="tab" data-tab="bulk">Toplu maç ekle</button>
     <button class="tab" data-tab="records">Maç arşivi</button>
     <button class="tab" data-tab="data">Veri aktarımı</button>
     <button class="tab" data-tab="developer">Geliştirici</button>
@@ -79,6 +80,18 @@ footer{color:var(--muted);font-size:11px;line-height:1.5;text-align:center;paddi
       </div>
       <div class="actions"><button class="primary" type="submit">Maçı kaydet</button><button type="reset" id="reset">Temizle</button></div>
     </form>
+  </section>
+
+  <section class="panel hidden" id="bulk">
+    <h2>Toplu maç ekle ve oranları karşılaştır</h2>
+    <p class="hint">Her satıra bir maç yaz. Alanları noktalı virgülle (;) ayır: <b>Ev sahibi;Deplasman;Lig;Tarih;1 oranı;X oranı;2 oranı;2,5 üst oranı;KG Var oranı</b></p>
+    <p class="hint">Örnek satır: Galatasaray;Fenerbahçe;Türkiye Süper Lig;2026-10-25;2.10;3.20;3.00;1.75;1.80</p>
+    <label for="bulkText">Maç listesi (her satıra bir maç)</label>
+    <textarea id="bulkText" rows="7" style="width:100%;background:#0c1728;color:var(--text);border:1px solid var(--line);border-radius:9px;padding:11px;font:14px system-ui" placeholder="Galatasaray;Fenerbahçe;Türkiye Süper Lig;2026-10-25;2.10;3.20;3.00;1.75;1.80"></textarea>
+    <div class="actions"><button class="primary" id="bulkSave">Maçları kaydet ve analiz et</button><button id="bulkExample">Örnek doldur</button><button id="bulkClear">Temizle</button></div>
+    <p id="bulkStatus" class="hint" aria-live="polite"></p>
+    <div id="bulkAnalysis" class="list"></div>
+    <div class="notice">Analiz, girilen oranlardan hesaplanan piyasa göstergelerini karşılaştırır. Takımların son 5–10 maçını otomatik inceleyen bir tahmin modeli henüz bağlı değildir; bu yüzdeler kesin sonuç veya garanti değildir.</div>
   </section>
 
   <section class="panel hidden" id="records">
@@ -156,7 +169,7 @@ function render(){
 }
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));
- ['add','records','data','developer'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab));
+ ['add','bulk','records','data','developer'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab));
 }));
 $('matchForm').addEventListener('submit',e=>{
  e.preventDefault();
@@ -215,6 +228,27 @@ $('csvFile').addEventListener('change',async e=>{
   save();$('importStatus').textContent=`${added} maç içe aktarıldı.`;
  }catch(err){$('importStatus').textContent='İçe aktarma hatası: '+err.message}
  e.target.value='';
+});
+function bulkNumber(v){if(!v||!v.trim())return null;const n=Number(v.trim().replace(',','.'));return Number.isFinite(n)&&n>0?n:null}
+function renderBulkAnalysis(addedMatches){
+ const list=(addedMatches||[]).map(m=>{
+  const p=normalized(m), over=oddsProb(m.over25), btts=oddsProb(m.bttsYes);
+  const score=over!=null&&btts!=null?(over+btts)/2:(over??btts??-1);
+  return {m,p,over,btts,score};
+ }).sort((a,b)=>b.score-a.score);
+ $('bulkAnalysis').innerHTML=list.length?list.map(x=>`<article class="match"><div class="matchname">${esc(x.m.home)} – ${esc(x.m.away)}</div><div class="small">${esc(x.m.league||'Lig belirtilmedi')} · ${esc(x.m.date||'Tarih belirtilmedi')}</div><div class="pills">${x.p?`<span class="pill">1 <b>${pct(x.p[0])}</b></span><span class="pill">X <b>${pct(x.p[1])}</b></span><span class="pill">2 <b>${pct(x.p[2])}</b></span>`:''}${x.over!=null?`<span class="pill">2,5 üst ham <b>${pct(x.over)}</b></span>`:''}${x.btts!=null?`<span class="pill">KG Var ham <b>${pct(x.btts)}</b></span>`:''}</div>${x.score>=0?`<div class="small">Oran göstergelerine göre sıralama: ${pct(x.score)} ortalama (yalnızca 2,5 üst ve KG Var oranları girildiyse ikisinin ortalaması).</div>`:'<div class="small">Karşılaştırma için 2,5 üst veya KG Var oranı girilmemiş.</div>'}</article>`).join(''):'<div class="empty">Toplu analiz için henüz maç eklenmedi.</div>';
+}
+$('bulkExample').addEventListener('click',()=>{$('bulkText').value='Galatasaray;Fenerbahçe;Türkiye Süper Lig;2026-10-25;2.10;3.20;3.00;1.75;1.80\nBeşiktaş;Trabzonspor;Türkiye Süper Lig;2026-10-26;1.95;3.30;3.60;1.90;1.85';});
+$('bulkClear').addEventListener('click',()=>{$('bulkText').value='';$('bulkStatus').textContent='';$('bulkAnalysis').innerHTML='';});
+$('bulkSave').addEventListener('click',()=>{
+ const lines=$('bulkText').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);if(!lines.length){$('bulkStatus').textContent='Önce en az bir maç satırı gir.';return;}
+ const added=[];let skipped=0;
+ for(const line of lines){const a=line.split(';').map(x=>x.trim());if(a.length<2||!a[0]||!a[1]){skipped++;continue;}
+  const m={id:Date.now().toString(36)+Math.random().toString(36).slice(2,8),home:a[0],away:a[1],league:a[2]||'',date:a[3]||'',htHome:null,htAway:null,ftHome:null,ftAway:null,o1:bulkNumber(a[4]),ox:bulkNumber(a[5]),o2:bulkNumber(a[6]),over25:bulkNumber(a[7]),under25:null,bttsYes:bulkNumber(a[8]),bttsNo:null};
+  matches.unshift(m);added.push(m);
+ }
+ if(added.length){save();renderBulkAnalysis(added);$('bulkStatus').textContent=`${added.length} maç kaydedildi ve oran göstergeleri hesaplandı.${skipped?' '+skipped+' satır atlandı.':''}`;}
+ else $('bulkStatus').textContent='Geçerli maç bulunamadı. Her satırda en az ev sahibi ve deplasman takımı olmalı.';
 });
 function download(name,content,type='text/csv;charset=utf-8'){
  const blob=new Blob(['\ufeff',content],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
