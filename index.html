@@ -128,7 +128,11 @@ footer{color:var(--muted);font-size:11px;line-height:1.5;text-align:center;paddi
     <p class="hint">Girilen 1-X-2 oranları, şirket marjı çıkarılarak normalize edilir. Diğer pazarlar için gösterilen yüzdeler ham oran ima olasılığıdır; marjı içerir. Bunlar henüz yapay zekâ tahmini değildir.</p>
     <div id="latestAnalysis" class="empty">Henüz analiz edilecek maç yok. Maç ekleyerek başla.</div>
   </section>
-</main>
+<section class="panel wide">
+  <h2>Otomatik maç verisi</h2>
+  <button class="primary" id="apiTest">Futbol API Bağlantısını Test Et</button>
+  <p id="apiStatus" class="hint"></p>
+</section></main>
 <footer>Futbol AI Analiz · By developer ChatGPT and Kürşad · Bahis sonucu garantisi vermez. Olasılıklar belirsizlik içerir.</footer>
 <script>
 const KEY='futbolAiMatchesV1';
@@ -290,6 +294,29 @@ async function futbolVerisiTestEt() {
     alert("Bağlantı hatası: " + error.message);
   }
 }
+
+document.getElementById("apiTest")?.addEventListener("click", async () => {
+  const status = document.getElementById("apiStatus");
+  status.textContent = "Maç verileri alınıyor...";
+
+  try {
+    const response = await fetch(
+      `${FOOTBALL_API_URL}/?league=PL`
+    );
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+    status.textContent =
+      "Bağlantı başarılı! Gelen maç sayısı: " +
+      (data.matches ? data.matches.length : 0);
+  } catch (error) {
+    status.textContent =
+      "Bağlantı hatası: " + error.message;
+  }
+});
 </script>
 <button onclick="futbolVerisiTestEt()">
   Futbol API Bağlantısını Test Et
