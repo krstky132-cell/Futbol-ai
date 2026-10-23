@@ -266,4 +266,29 @@ $('clearAll').addEventListener('click',()=>{
 render();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
 </script>
+
+<script>
+const FOOTBALL_API_URL = "https://futbol-ai-api.krstky132.workers.dev/";
+
+async function futbolVerisiTestEt() {
+  try {
+    const response = await fetch(
+      `${FOOTBALL_API_URL}/?league=PL`
+    );
+
+    if (!response.ok) {
+      throw new Error("HTTP " + response.status);
+    }
+
+    const data = await response.json();
+
+    alert(
+      "Bağlantı başarılı! Gelen maç sayısı: " +
+      (data.matches ? data.matches.length : 0)
+    );
+  } catch (error) {
+    alert("Bağlantı hatası: " + error.message);
+  }
+}
+</script>
 </body></html>
