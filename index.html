@@ -294,31 +294,88 @@ async function futbolVerisiTestEt() {
     alert("Bağlantı hatası: " + error.message);
   }
 }
+const apiLeagues = [
+  { code: "PL", name: "İngiltere Premier League" },
+  { code: "PD", name: "İspanya La Liga" },
+  { code: "SA", name: "İtalya Serie A" },
+  { code: "BL1", name: "Almanya Bundesliga" },
+  { code: "FL1", name: "Fransa Ligue 1" },
+  { code: "DED", name: "Hollanda Eredivisie" }
+];
 
-document.getElementById("apiTest")?.addEventListener("click", async () => {
+document.getElementById("OTOMATİK MAÇLARI GETİR")?.addEventListener("click", async () => {
   const status = document.getElementById("apiStatus");
-  status.textContent = "Maç verileri alınıyor...";
+  const seen = new Set(
+    matches.map(m =>
+      [m.date, m.league, m.home, m.away].join("|")
+    )
+  );
 
-  try {
-    const response = await fetch(
-      `${FOOTBALL_API_URL}/?league=PL`
-    );
+  let added = 0;
+  let failed = [];
 
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
+  status.textContent = "Ligler sırayla kontrol ediliyor...";
+
+  for (const league of apiLeagues) {
+    try {
+      const response = await fetch(
+        `${FOOTBALL_API_URL}/?league=${league.code}`
+      );
+
+      if (!response.ok) {
+        failed.push(league.name);
+        continue;
+      }
+
+      const data = await response.json();
+
+      for (const game of (data.matches || [])) {
+        if (game.status !== "FINISHED") continue;
+
+        const home = game.homeTeam?.name;
+        const away = game.awayTeam?.name;
+        if (!home || !away) continue;
+
+        const date = (game.utcDate || "").slice(0, 10);
+        const key = [date, league.name, home, away].join("|");
+
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const full = game.score?.fullTime;
+        const half = game.score?.halfTime;
+
+        matches.push({
+          id: "api-" + game.id,
+          date,
+          league: league.name,
+          home,
+          away,
+          htHome: half?.home ?? null,
+          htAway: half?.away ?? null,
+          ftHome: full?.home ?? null,
+          ftAway: full?.away ?? null,
+          o1: null,
+          ox: null,
+          o2: null,
+          over25: null,
+          under25: null,
+          bttsYes: null,
+          bttsNo: null
+        });
+
+        added++;
+      }
+    } catch (error) {
+      failed.push(league.name);
     }
-
-    const data = await response.json();
-    status.textContent =
-      "Bağlantı başarılı! Gelen maç sayısı: " +
-      (data.matches ? data.matches.length : 0);
-  } catch (error) {
-    status.textContent =
-      "Bağlantı hatası: " + error.message;
   }
+
+  save();
+
+  status.textContent =
+    added + " yeni maç arşive eklendi." +
+    (failed.length
+      ? " Veri alınamayan ligler: " + failed.join(", ")
+      : " Altı lig kontrol edildi.");
 });
-</script>
-<button onclick="futbolVerisiTestEt()">
-  Futbol API Bağlantısını Test Et
-</button>
-</body></html>
