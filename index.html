@@ -51,6 +51,7 @@ footer{color:var(--muted);font-size:11px;line-height:1.5;text-align:center;paddi
     <button class="tab active" data-tab="add">Maç ekle</button>
     <button class="tab" data-tab="records">Maç arşivi</button>
     <button class="tab" data-tab="data">Veri aktarımı</button>
+    <button class="tab" data-tab="developer">Geliştirici</button>
   </nav>
 
   <section class="panel" id="add">
@@ -86,6 +87,16 @@ footer{color:var(--muted);font-size:11px;line-height:1.5;text-align:center;paddi
     <div id="matchList" class="list"></div>
   </section>
 
+  <section class="panel hidden" id="developer">
+    <h2>Geliştirici</h2>
+    <div style="text-align:center;padding:24px 12px;background:#0c1728;border:1px solid var(--line);border-radius:12px">
+      <div style="font-size:32px;margin-bottom:10px">⚽</div>
+      <div style="font-size:20px;font-weight:800;letter-spacing:.2px">Futbol AI</div>
+      <p style="font-size:15px;font-weight:650;margin:12px 0 4px;color:var(--blue)">By developer ChatGPT and Kürşad</p>
+      <p class="hint" style="margin:8px 0 0">Futbol verilerini analiz etmek ve maç istatistiklerini daha anlaşılır hâle getirmek için geliştiriliyor.</p>
+    </div>
+  </section>
+
   <section class="panel hidden" id="data">
     <h2>Veri aktarımı</h2>
     <p class="hint">CSV dosyası yükleyerek çok sayıda geçmiş maçı içeri alabilirsin. Excel'de önce Farklı Kaydet → CSV UTF-8 seç. CSV başlıklarını aşağıdaki örneğe benzet.</p>
@@ -105,7 +116,7 @@ footer{color:var(--muted);font-size:11px;line-height:1.5;text-align:center;paddi
     <div id="latestAnalysis" class="empty">Henüz analiz edilecek maç yok. Maç ekleyerek başla.</div>
   </section>
 </main>
-<footer>Futbol AI Analiz · İlk telefon prototipi · Bahis sonucu garantisi vermez. Olasılıklar belirsizlik içerir.</footer>
+<footer>Futbol AI Analiz · By developer ChatGPT and Kürşad · Bahis sonucu garantisi vermez. Olasılıklar belirsizlik içerir.</footer>
 <script>
 const KEY='futbolAiMatchesV1';
 let matches=[];
@@ -145,7 +156,7 @@ function render(){
 }
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
  document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x===b));
- ['add','records','data'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab));
+ ['add','records','data','developer'].forEach(id=>$(id).classList.toggle('hidden',id!==b.dataset.tab));
 }));
 $('matchForm').addEventListener('submit',e=>{
  e.preventDefault();
