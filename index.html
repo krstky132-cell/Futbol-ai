@@ -294,31 +294,40 @@ async function futbolVerisiTestEt() {
     alert("Bağlantı hatası: " + error.message);
   }
 }
-
-document.getElementById("apiTest")?.addEventListener("click", async () => {
+document.addEventListener("DOMContentLoaded", () => {
+  const button = document.getElementById("apiTest");
   const status = document.getElementById("apiStatus");
-  status.textContent = "Maç verileri alınıyor...";
 
-  try {
-    const response = await fetch(
-      `${FOOTBALL_API_URL}/?league=PL`
-    );
-
-    if (!response.ok) {
-      throw new Error("HTTP " + response.status);
-    }
-
-    const data = await response.json();
-    status.textContent =
-      "Bağlantı başarılı! Gelen maç sayısı: " +
-      (data.matches ? data.matches.length : 0);
-  } catch (error) {
-    status.textContent =
-      "Bağlantı hatası: " + error.message;
+  if (!button || !status) {
+    console.error("API test butonu veya durum alanı bulunamadı.");
+    return;
   }
+
+  button.addEventListener("click", async () => {
+    status.textContent = "Maç verileri alınıyor...";
+    button.disabled = true;
+
+    try {
+      const response = await fetch(
+        `${FOOTBALL_API_URL}?league=PL`
+      );
+
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
+
+      const data = await response.json();
+
+      status.textContent =
+        "Bağlantı başarılı! Gelen maç sayısı: " +
+        (data.matches ? data.matches.length : 0);
+    } catch (error) {
+      status.textContent = "Bağlantı hatası: " + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
 });
+
 </script>
-<button onclick="futbolVerisiTestEt()">
-  Futbol API Bağlantısını Test Et
-</button>
 </body></html>
