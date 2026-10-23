@@ -294,14 +294,96 @@ async function futbolVerisiTestEt() {
     alert("Bağlantı hatası: " + error.message);
   }
 }
+
 document.addEventListener("DOMContentLoaded", () => {
   const button = document.getElementById("apiTest");
   const status = document.getElementById("apiStatus");
 
-  if (!button || !status) {
-    console.error("API test butonu veya durum alanı bulunamadı.");
-    return;
-  }
+  if (!button || !status) return;
+
+  button.addEventListener("click", async () => {
+    status.textContent = "Maçlar alınıyor...";
+    button.disabled = true;
+
+    try {
+      const response = await fetch(
+        `${FOOTBALL_API_URL}?league=PL`
+      );
+
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status);
+      }
+
+      const data = await response.json();
+      const apiMatches = Array.isArray(data.matches)
+        ? data.matches
+        : [];
+
+      if (!apiMatches.length) {
+        throw new Error("API yanıtında maç listesi bulunamadı.");
+      }
+
+      const existing = new Set(
+        matches.map(m =>
+          `${m.home}|${m.away}|${m.date}`.toLowerCase()
+        )
+      );
+
+      let added = 0;
+
+      for (const item of apiMatches) {
+        const home = item.homeTeam?.name || item.home || "";
+        const away = item.awayTeam?.name || item.away || "";
+        if (!home || !away) continue;
+
+        const date = item.utcDate || item.date || "";
+        const key =
+          `${home}|${away}|${date}`.toLowerCase();
+
+        if (existing.has(key)) continue;
+
+        const score = item.score?.fullTime || {};
+
+        matches.unshift({
+          id: Date.now().toString(36) +
+            Math.random().toString(36).slice(2, 8),
+          home,
+          away,
+          date: date ? date.slice(0, 10) : "",
+          league: item.competition?.name ||
+            item.league || "Premier League",
+          htHome: null,
+          htAway: null,
+          ftHome: score.home ?? item.ftHome ?? null,
+          ftAway: score.away ?? item.ftAway ?? null,
+          o1: null,
+          ox: null,
+          o2: null,
+          over25: null,
+          under25: null,
+          bttsYes: null,
+          bttsNo: null
+        });
+
+        existing.add(key);
+        added++;
+      }
+
+      save();
+
+      status.textContent =
+        `Bağlantı başarılı! API ${apiMatches.length} maç döndürdü. ` +
+        `${added} yeni maç arşive eklendi.`;
+
+    } catch (error) {
+      status.textContent =
+        "Bağlantı hatası: " + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+});
+
 
   button.addEventListener("click", async () => {
     status.textContent = "Maç verileri alınıyor...";
